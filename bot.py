@@ -76,7 +76,7 @@ cancel_upload = {}
 bot = Client("bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 
 
-USERS = [RoxanaArias6]
+USERS = ["RoxanaArias6"]
 ADM = ["Osvaldo20032"]
 
 

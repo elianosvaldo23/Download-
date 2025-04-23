@@ -66,7 +66,7 @@ async def get_gpt_response(prompt: str) -> str:
 # BoT Configuration Variables
 api_id = 13876032
 api_hash = "c87c88faace9139628f6c7ffc2662bff"
-bot_token = "7716154596:AAFccewMEph4omFDMsJtQrkFY12ZPhn-Xrk"
+bot_token = "7716154596:AAG1o_zmCJ2x7Mtxay-ddz98TcdVce9fdFs"
 downlist = {} #lista de archivos descargados
 root = {} #directorio actua
 id_path = {}

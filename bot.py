@@ -1028,3 +1028,11 @@ bot.start()
 bot.send_message(1742433244,'**BoT Iniciado preiona /start y disfruta de tu estadia**')
 print("Bot  Iniciado")
 bot.loop.run_forever()
+
+# Añade al final de bot.py
+import os
+PORT = int(os.environ.get("PORT", 8080))
+
+# Asegúrate que la aplicación escuche en este puerto
+# Por ejemplo, si estás usando Flask:
+# app.run(host='0.0.0.0', port=PORT)

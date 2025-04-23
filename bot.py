@@ -345,13 +345,20 @@ def eta_fmt(seconds):
 async def downloadmessage_progres(chunk, filesize, filename, start, message):
     global seg
     user_id = message.chat.id
-    if user_id in cancel_upload and cancel_upload[user_id]:  # Verifica si el usuario canceló
-        await message.edit("**Download Stopped!\n┠ Plan: Free\n┠ \n┖ Reason: Cancelled by user!**")
+    
+    # Verificar si la descarga fue cancelada por el usuario
+    if user_id in cancel_upload and cancel_upload[user_id]:
+        try:
+            await message.edit("**Download Stopped!\n┠ Plan: Free\n┠ \n┖ Reason: Cancelled by user!**")
+        except Exception as e:
+            print(f"Error al editar mensaje de cancelación: {e}")
         return
+    
+    # Calcular progreso y estadísticas
     now = time()
     diff = now - start
-    if diff <= 0: #Evitamos la division por cero
-       diff = 1
+    if diff <= 0:  # Evitamos la división por cero
+        diff = 1
     mbs = chunk / diff
     percent = update_progress_bar(chunk, filesize)
     processed_size = sizeof_fmt(chunk)
@@ -360,17 +367,28 @@ async def downloadmessage_progres(chunk, filesize, filename, start, message):
     eta_seconds = (filesize - chunk) / mbs if mbs > 0 else 0
     eta = eta_fmt(eta_seconds)
 
+    # Construir el mensaje de progreso
     msg = "Task is being Processed!\n"
     msg += f"┠ File: {filename}\n"
     msg += f"┃ {update_progress_bar(chunk, filesize, 15)}\n"
     msg += f"┠ Processed: {processed_size} of {total_size}\n"
     msg += f"┖ Speed: {speed} | ETA: {eta}\n"
     msg += f"┠ Status: #TelegramDownload"
+    
+    # Crear botón de cancelación
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Cancelar", callback_data=f"cancel_uploa_{user_id}")]])
+    
+    # Solo actualizar el mensaje si ha cambiado el segundo o el contenido
     if seg != localtime().tm_sec:
         try:
-           await message.edit(msg, reply_markup=keyboard)
-        except:pass
+            # Almacenar el último mensaje para comparar
+            last_msg = getattr(message, "_last_message", "")
+            if last_msg != msg:  # Solo editar si el mensaje ha cambiado
+                await message.edit(msg, reply_markup=keyboard)
+                setattr(message, "_last_message", msg)
+        except Exception as e:
+            print(f"Error al actualizar mensaje de progreso: {e}")
+            
     seg = localtime().tm_sec
 
   
@@ -824,41 +842,44 @@ async def handle_message(client, message):
             range_str = message.text.split(" ")[1]
             range_parts = range_str.split("-")
             start = int(range_parts[0])
-        except Exception as e:
-            await msg.edit(e)
-        usid = user_id    
-        try:
-            end = int(range_parts[1])
-        except:
-            end = start
-        msgh = files_formatter(str(root[username]["actual_root"]), username)
-        selected_files = []
-    
-        for i in range(start, end + 1):
-            path = str(root[username]["actual_root"] + "/") + msgh[1][i]    
-            selected_files.append(path)
-            size = os.path.getsize(path)/(1024 * 1024)
-       
-        if len(selected_files) == 0:
-            await msg.edit(" No se encontraron archivos en el rango especificado.**\nTenga en cuenta que el comando se usa:\n/up_#nombre_del_archivo para un archivo simple\nPor rango /up_#archivo1-#archivo2 ej: /up_0-5 ahí se subirán los archivos del 0 al 5 del servidor a la nube.")
-            return
-        elif len(selected_files) == 1:
-            file_name = os.path.basename(selected_files[0])
-            await msg.edit(f"**Archivo Seleccionado: {file_name}")
-            id_path[username] = {"id": selected_files, "user_id": user_id}
-            path = selected_files[0]
-            await upload_rev(bot, path,usid,msg,username)
-            await msg.delete()
-            return 
-        else:
-            await msg.edit(f"**Archivos Seleccionados: {len(selected_files)}")
-            id_path[username] = {"id": selected_files, "user_id": user_id}
-            for path in selected_files:
-                await upload_rev(bot, path,usid,msg,username)
-            await msg.delete()
-            return
             
-          
+            usid = user_id    
+            try:
+                end = int(range_parts[1])
+            except:
+                end = start
+                
+            msgh = files_formatter(str(root[username]["actual_root"]), username)
+            selected_files = []
+        
+            for i in range(start, end + 1):
+                if i < len(msgh[1]):  # Verificar que el índice está dentro del rango
+                    path = str(root[username]["actual_root"] + "/") + msgh[1][i]
+                    selected_files.append(path)
+        
+            if len(selected_files) == 0:
+                await msg.edit("No se encontraron archivos en el rango especificado.**\nTenga en cuenta que el comando se usa:\n/up_#nombre_del_archivo para un archivo simple\nPor rango /up_#archivo1-#archivo2 ej: /up_0-5 ahí se subirán los archivos del 0 al 5 del servidor a la nube.")
+                return
+            elif len(selected_files) == 1:
+                file_name = os.path.basename(selected_files[0])
+                await msg.edit(f"**Archivo Seleccionado: {file_name}")
+                id_path[username] = {"id": selected_files, "user_id": user_id}
+                path = selected_files[0]
+                await upload_rev(bot, path, usid, msg, username)
+                await msg.delete()
+                return 
+            else:
+                await msg.edit(f"**Archivos Seleccionados: {len(selected_files)}")
+                id_path[username] = {"id": selected_files, "user_id": user_id}
+                for path in selected_files:
+                    await upload_rev(bot, path, usid, msg, username)
+                await msg.delete()
+                return
+                
+        except Exception as e:
+            await msg.edit(f"Error: {str(e)}")
+            return
+   
 class Progress(BufferedReader):
     def __init__(self, filename, read_callback):
         f = open(filename, "rb")

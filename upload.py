@@ -144,6 +144,10 @@ def uploadfile_progres(chunk, filesize, start, filename, message):
     
 ####################################################################################################### 
 async def upload_rev(bot, path, usid, msg, username):
+    # Verificar tamaño del archivo antes de procesarlo
+    if os.path.getsize(path) == 0:
+        await msg.edit("**Error: El archivo está vacío (0 bytes)**")
+        return
     user_id = usid
     file_size = os.path.getsize(path)
     cancel_uploads[usid] = False
